@@ -1,14 +1,49 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { FaShoppingBag } from "react-icons/fa";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { getAuthToken, removeAuthToken } from "../auth/auth";
+import jwt from "jsonwebtoken";
+interface DecodedToken {
+  role: string;
+  name: string;
+  image:string
+}
 
 function Navbar() {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [user, setUser] = useState<DecodedToken | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    checkAuth();
+  }, [pathname]);
+
+  const checkAuth = () => {
+    const token = getAuthToken();
+    if (token) {
+      try {
+        const decoded = jwt.decode(token) as DecodedToken;
+        setUser(decoded);
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setUser(null);
+      }
+    } else {
+      setUser(null);
+    }
+  };
+
+  const handleLogout = () => {
+    removeAuthToken();
+    setUser(null);
+    router.push('/login');
+  };
+
   const navItems = [
     {
       name: "Home",
@@ -23,10 +58,11 @@ function Navbar() {
       name: "About US",
       href: "/about",
     },
-    {
+    // Conditionally show Login or user info
+    ...(user ? [] : [{
       name: "My Account",
       href: "/login",
-    },
+    }]),
   ];
 
   return (
@@ -43,7 +79,7 @@ function Navbar() {
 
       <div className="hidden md:flex items-center gap-10">
         {navItems.map((item) => {
-          const isActive = pathname === item.href; 
+          const isActive = pathname === item.href;
 
           return (
             <div
@@ -71,13 +107,42 @@ function Navbar() {
             </div>
           );
         })}
+
+
         <div className="relative">
           <FaShoppingBag className="text-red-500 text-[20px]" />
           <div className="absolute top-[-9px] right-[-14px] w-[20px] h-[20px] bg-red-500 border rounded-full font-bold text-[14px] text-center">
             0
           </div>
         </div>
+                {user?.role==="user" && (
+          <div className="flex items-center  gap-4">
+            <div className="flex items-center flex-col gap-3">
+              <div className="rounded-full h-[60px] w-[60px] overflow-hidden">
+                <Image 
+                  src={user.image} 
+                  width={60} 
+                  height={60} 
+                  alt={user.name}
+                  className="rounded-full object-cover w-full h-full"
+                />
+              </div>
+              <span className="text-[15px] text-gray-700">
+                Welcome, {user.name}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-[15px] text-red-500 hover:text-red-600"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
+        )}
+
       </div>
+      
     </nav>
   );
 }

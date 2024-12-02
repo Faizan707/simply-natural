@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
         const email = data.get("email") as string;
         const password = data.get("password") as string;
 
-        console.log("Received data:", { name, email, hasPassword: !!password, hasImage: !!image });
 
         if (!name || !email || !password) {
             return NextResponse.json(
@@ -51,7 +50,6 @@ export async function POST(request: NextRequest) {
             console.log("Image processed successfully");
         }
 
-        console.log("Creating user in database...");
         const newUser = await prisma.user.create({
             data: {
                 name,
@@ -73,18 +71,14 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        console.log("User created successfully:", { userId: newUser.id });
 
-        // Create token payload
         const tokenPayload = {
             userId: newUser.id,
             email: newUser.email,
             isAdmin: newUser.isAdmin
         };
 
-        console.log("Creating JWT with payload:", tokenPayload);
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1d' });
-        console.log("JWT created successfully");
 
         return NextResponse.json({
             message: "User created successfully",
